@@ -239,7 +239,7 @@ function saveSettings(s){const db=getDB();db.settings=s;saveDB(db)}
 function getGoals(){return getDB().goals}
 function saveGoals(g){const db=getDB();db.goals=g;saveDB(db)}
 
-/* ===== METRICS (based on manually-entered P/L only) ===== */
+/* ===== METRICS ===== */
 function getAccountMetrics(){
   const trades=getTrades();
   if(!trades.length)return{netPnl:0,winRate:0,profitFactor:0,expectancy:0,avgWin:0,avgLoss:0,totalTrades:0,wins:0,losses:0,be:0,maxDD:0,largestWin:0,largestLoss:0,dailyPnl:{}};
@@ -377,10 +377,7 @@ ${statCard('W / L / BE',m.wins+' / '+m.losses+' / '+m.be,'fa-trophy','var(--warn
 <div class="card"><h3 class="font-heading" style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text2)">Daily P/L</h3><div class="chart-container"><canvas id="chartDailyPnl"></canvas></div></div>
 <div class="card"><h3 class="font-heading" style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text2)">Strategy Performance</h3><div class="chart-container"><canvas id="chartStratPerf"></canvas></div></div>
 </div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-<div class="card"><h3 class="font-heading" style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text2)">Symbol Performance</h3><div class="chart-container"><canvas id="chartSymbolPerf"></canvas></div></div>
-<div class="card"><h3 class="font-heading" style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text2)">Trading Activity Heatmap</h3><div id="heatmapContainer" style="overflow-x:auto"></div></div>
-</div>
+<div class="card" style="margin-bottom:14px"><h3 class="font-heading" style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text2)">Symbol Performance</h3><div class="chart-container"><canvas id="chartSymbolPerf"></canvas></div></div>
 <div class="card">
 <h3 class="font-heading" style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text2)">Streaks &amp; Goals</h3>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
@@ -393,7 +390,7 @@ ${statCard('W / L / BE',m.wins+' / '+m.losses+' / '+m.be,'fa-trophy','var(--warn
 <div style="display:grid;gap:14px">${renderGoalBars(m)}</div>
 </div>
 </div>`;
-  buildDashboardCharts(trades,m,dailyPnl,dates);buildHeatmap(trades);
+  buildDashboardCharts(trades,m,dailyPnl,dates);
 }
 
 function statCard(label,value,icon,color){
@@ -436,31 +433,12 @@ function buildDashboardCharts(trades,m,dailyPnl,dates){
   }
 }
 
-function buildHeatmap(trades){
-  const container=document.getElementById('heatmapContainer');if(!container)return;
-  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
-  const hourDayMap={};
-  trades.forEach(t=>{
-    if(!t.entryTime)return;const d=new Date(t.date);const day=d.getDay();const h=parseInt(t.entryTime.split(':')[0]);
-    const key=day+'-'+h;if(!hourDayMap[key])hourDayMap[key]=0;hourDayMap[key]+=(parseFloat(t.pnl)||0);
-  });
-  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];const hours=[...Array(24)].map((_,i)=>i);
-  let html='<div style="display:grid;grid-template-columns:50px repeat(24,1fr);gap:2px;font-size:10px">';
-  html+='<div></div>';hours.forEach(h=>{html+='<div style="text-align:center;color:var(--text2)">'+h+'</div>'});
-  days.forEach((day,di)=>{html+='<div style="display:flex;align-items:center;color:var(--text2)">'+day+'</div>';hours.forEach(h=>{const key=di+'-'+h;const v=hourDayMap[key]||0;const intensity=Math.min(Math.abs(v)/200,1);
-    const bg=v>0?(isDark?'rgba(192,132,252,'+(intensity*.7)+')':'rgba(2,132,199,'+(intensity*.7)+')')
-      :v<0?(isDark?'rgba(248,113,113,'+(intensity*.7)+')':'rgba(220,38,38,'+(intensity*.7)+')')
-      :'rgba(255,255,255,0.04)';
-    html+='<div class="heatmap-cell" style="background:'+bg+'" title="'+day+' '+h+':00 — P/L: '+fmtCurrency(v)+'"></div>'})});
-  html+='</div>';container.innerHTML=html;
-}
-
 /* ===== TRADE LOG ===== */
 function renderTradeLog(){
   const trades=getTrades();const settings=getSettings();
   document.getElementById('tradelogContent').innerHTML=`
 <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:end">
-<div style="flex:1;min-width:150px"><label>Search</label><input type="text" id="tlSearch" oninput="filterTradeLog()" placeholder="symbol, date…"></div>
+<div style="flex:1;min-width:150px"><label>Search</label><input type="text" id="tlSearch" oninput="filterTradeLog()"></div>
 <div style="min-width:130px"><label>Strategy</label><select id="tlStrategy" onchange="filterTradeLog()"><option value="">All</option>${settings.strategies.map(s=>'<option>'+s+'</option>').join('')}</select></div>
 <div style="min-width:130px"><label>Symbol</label><select id="tlSymbol" onchange="filterTradeLog()"><option value="">All</option>${[...new Set(trades.map(t=>t.symbol))].map(s=>'<option>'+s+'</option>').join('')}</select></div>
 <div style="min-width:130px"><label>Result</label><select id="tlResult" onchange="filterTradeLog()"><option value="">All</option><option>Winner</option><option>Loser</option><option>Breakeven</option></select></div>
@@ -469,7 +447,7 @@ function renderTradeLog(){
 <button class="btn btn-secondary btn-sm" onclick="exportTradesCSV()"><i class="fas fa-download"></i>CSV</button>
 </div>
 <div class="table-container" style="max-height:calc(100vh - 220px);overflow-y:auto">
-<table><thead><tr><th>Date</th><th>Symbol</th><th>Dir</th><th>Strategy</th><th>Entry</th><th>Exit</th><th>P/L</th><th>Result</th><th>Duration</th><th>Actions</th></tr></thead>
+<table><thead><tr><th>Date</th><th>Symbol</th><th>Dir</th><th>Strategy</th><th>P/L</th><th>R:R</th><th>Result</th><th>Actions</th></tr></thead>
 <tbody id="tradeLogBody"></tbody></table></div>`;
   filterTradeLog();
 }
@@ -491,8 +469,9 @@ function filterTradeLog(){
   const body=document.getElementById('tradeLogBody');if(!body)return;
   body.innerHTML=filtered.map(t=>{
     const pnl=parseFloat(t.pnl)||0;const cls=classifyTrade(pnl);
-    return'<tr><td style="font-weight:500;white-space:nowrap">'+t.date+'</td><td style="font-weight:700;letter-spacing:.5px">'+t.symbol+'</td><td><span class="badge '+(t.direction==='long'?'badge-green':'badge-red')+'" style="text-transform:uppercase">'+(t.direction||'-')+'</span></td><td>'+(t.strategy||'-')+'</td><td>'+(t.entryPrice||'-')+'</td><td>'+(t.exitPrice||'-')+'</td><td style="'+pnlClass(pnl)+';font-weight:700">'+pnlSign(pnl)+fmtCurrency(pnl)+'</td><td><span class="badge '+pnlBadge(pnl)+'">'+cls+'</span></td><td style="color:var(--text2);font-size:12px">'+(t.duration||'-')+'</td><td style="white-space:nowrap"><button class="btn btn-sm btn-secondary" onclick="viewTrade(\''+t.id+'\')" style="padding:4px 8px"><i class="fas fa-eye"></i></button> <button class="btn btn-sm btn-secondary" onclick="editTrade(\''+t.id+'\')" style="padding:4px 8px"><i class="fas fa-edit"></i></button> <button class="btn btn-sm btn-danger" onclick="confirmDeleteTrade(\''+t.id+'\')" style="padding:4px 8px"><i class="fas fa-trash"></i></button></td></tr>'}).join('');
-  if(!filtered.length)body.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--text2);padding:40px">No trades found</td></tr>';
+    const rr=t.riskReward?'1:'+t.riskReward:'-';
+    return'<tr><td style="font-weight:500;white-space:nowrap">'+t.date+'</td><td style="font-weight:700;letter-spacing:.5px">'+t.symbol+'</td><td><span class="badge '+(t.direction==='long'?'badge-green':'badge-red')+'" style="text-transform:uppercase">'+(t.direction||'-')+'</span></td><td>'+(t.strategy||'-')+'</td><td style="'+pnlClass(pnl)+';font-weight:700">'+pnlSign(pnl)+fmtCurrency(pnl)+'</td><td style="color:var(--text2);font-size:12px">'+rr+'</td><td><span class="badge '+pnlBadge(pnl)+'">'+cls+'</span></td><td style="white-space:nowrap"><button class="btn btn-sm btn-secondary" onclick="viewTrade(\''+t.id+'\')" style="padding:4px 8px"><i class="fas fa-eye"></i></button> <button class="btn btn-sm btn-secondary" onclick="editTrade(\''+t.id+'\')" style="padding:4px 8px"><i class="fas fa-edit"></i></button> <button class="btn btn-sm btn-danger" onclick="confirmDeleteTrade(\''+t.id+'\')" style="padding:4px 8px"><i class="fas fa-trash"></i></button></td></tr>'}).join('');
+  if(!filtered.length)body.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text2);padding:40px">No trades found</td></tr>';
 }
 
 function confirmDeleteTrade(id){openModal('<h3 class="font-heading" style="font-size:18px;margin-bottom:12px">Delete Trade</h3><p style="color:var(--text2);margin-bottom:20px">Are you sure? This cannot be undone.</p><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-danger" onclick="deleteTrade(\''+id+'\');closeModal();renderPage(currentPage);showToast(\'Trade deleted\',\'info\')">Delete</button></div>')}
@@ -502,12 +481,12 @@ function viewTrade(id){
   const pnl=parseFloat(t.pnl)||0;const cls=classifyTrade(pnl);
   const screenshots=(t.screenshots||[]).map(s=>'<img src="'+s+'" class="screenshot-thumb" onclick="previewImage(\''+s.replace(/'/g,"\\'")+'\')" >').join('');
   openModal(
-    '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:16px"><div><h3 class="font-heading" style="font-size:20px;font-weight:700">'+t.symbol+' — <span style="text-transform:uppercase">'+t.direction+'</span></h3><span style="color:var(--text2);font-size:13px">'+t.date+' '+(t.entryTime||'')+' → '+(t.exitTime||'')+'</span></div><div style="text-align:right"><div style="font-size:24px;font-weight:700;font-family:\'Space Grotesk\';'+pnlClass(pnl)+'">'+pnlSign(pnl)+fmtCurrency(pnl)+'</div><span class="badge '+pnlBadge(pnl)+'">'+cls+'</span></div></div>'
+    '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:16px"><div><h3 class="font-heading" style="font-size:20px;font-weight:700">'+t.symbol+' — <span style="text-transform:uppercase">'+t.direction+'</span></h3><span style="color:var(--text2);font-size:13px">'+t.date+'</span></div><div style="text-align:right"><div style="font-size:24px;font-weight:700;font-family:\'Space Grotesk\';'+pnlClass(pnl)+'">'+pnlSign(pnl)+fmtCurrency(pnl)+'</div><span class="badge '+pnlBadge(pnl)+'">'+cls+'</span></div></div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">'
-    +miniStat('Entry Price',t.entryPrice||'-')+miniStat('Exit Price',t.exitPrice||'-')
-    +miniStat('Stop Loss',t.stopLoss||'-')+miniStat('Take Profit',t.takeProfit||'-')
-    +miniStat('Lot Size',t.lotSize||'-')+miniStat('Duration',t.duration||'-')
+    +miniStat('Symbol',t.symbol||'-')+miniStat('Direction',(t.direction||'-').toUpperCase())
     +miniStat('Strategy',t.strategy||'-')+miniStat('Setup',t.setupType||'-')
+    +miniStat('Risk:Reward',t.riskReward?'1:'+t.riskReward:'-')
+    +miniStat('Lot Size',t.lotSize||'-')+miniStat('P/L',pnlSign(pnl)+fmtCurrency(pnl))
     +'</div>'
     +(t.review?'<div style="margin-bottom:16px"><h4 class="font-heading" style="font-size:14px;color:var(--text2);margin-bottom:8px">Trade Review</h4>'
     +(t.review.setupDescription?'<p style="font-size:13px;margin-bottom:6px"><strong>Setup:</strong> '+t.review.setupDescription+'</p>':'')
@@ -522,7 +501,7 @@ function viewTrade(id){
   );
 }
 
-/* ===== TRADE ENTRY — Manual P/L ===== */
+/* ===== TRADE ENTRY ===== */
 let tempScreenshots=[];
 
 function renderTradeEntry(editId){
@@ -540,20 +519,21 @@ function renderTradeEntry(editId){
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
 <div><label>Date</label><input type="date" name="date" value="${t?.date||new Date().toISOString().slice(0,10)}" required></div>
 <div><label>Symbol</label><select name="symbol" required>${settings.symbols.map(s=>'<option value="'+s+'" '+(t?.symbol===s?'selected':'')+'>'+s+'</option>').join('')}</select></div>
-<div><label>Entry Time</label><input type="time" name="entryTime" value="${t?.entryTime||''}" step="1"></div>
-<div><label>Exit Time</label><input type="time" name="exitTime" value="${t?.exitTime||''}" step="1"></div>
 <div><label>Direction</label><select name="direction"><option value="long" ${t?.direction==='long'?'selected':''}>Long</option><option value="short" ${t?.direction==='short'?'selected':''}>Short</option></select></div>
-<div><label>Lot Size</label><input type="number" name="lotSize" value="${t?.lotSize||''}" step="any" placeholder="0.01"></div>
-<div><label>Entry Price</label><input type="number" name="entryPrice" value="${t?.entryPrice||''}" step="any"></div>
-<div><label>Exit Price</label><input type="number" name="exitPrice" value="${t?.exitPrice||''}" step="any"></div>
-<div><label>Stop Loss</label><input type="number" name="stopLoss" value="${t?.stopLoss||''}" step="any"></div>
-<div><label>Take Profit</label><input type="number" name="takeProfit" value="${t?.takeProfit||''}" step="any"></div>
+<div><label>Lot Size</label><input type="number" name="lotSize" value="${t?.lotSize||''}" step="any"></div>
+<div>
+  <label>Risk : Reward</label>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span style="color:var(--text2);font-size:13px;font-weight:600;white-space:nowrap">1 :</span>
+    <input type="number" name="riskReward" value="${t?.riskReward||''}" step="0.1" min="0">
+  </div>
+  <div style="font-size:11px;color:var(--text2);margin-top:4px">Enter the reward side only (e.g. 2 = 1:2 R:R)</div>
+</div>
 <div style="grid-column:1/-1">
   <label>P/L (Profit / Loss) <span style="color:var(--accent)">*</span></label>
-  <input type="number" name="pnl" value="${t?.pnl||''}" step="any" required placeholder="Enter your profit (positive) or loss (negative)" style="border-color:rgba(192,132,252,0.4)">
+  <input type="number" name="pnl" value="${t?.pnl||''}" step="any" required style="border-color:rgba(192,132,252,0.4)">
   <div style="font-size:11px;color:var(--text2);margin-top:5px">Enter the actual P/L amount from your broker. Use negative values for losses (e.g. -50.00)</div>
 </div>
-<div><label>Duration</label><input type="text" name="duration" value="${t?.duration||''}" placeholder="e.g. 2h 30m"></div>
 </div></fieldset>
 
 <fieldset class="card" style="padding:20px"><legend class="font-heading" style="font-size:13px;font-weight:600;padding:0 8px">Classification &amp; Review</legend>
@@ -590,13 +570,11 @@ function saveTradeForm(e,editId){
   e.preventDefault();const f=document.getElementById('tradeForm');const data=new FormData(f);
   const pnl=parseFloat(data.get('pnl'))||0;
   const trade={
-    date:data.get('date'),entryTime:data.get('entryTime'),exitTime:data.get('exitTime'),
+    date:data.get('date'),
     symbol:data.get('symbol'),direction:data.get('direction'),
     lotSize:data.get('lotSize')||null,
-    entryPrice:data.get('entryPrice')||null,exitPrice:data.get('exitPrice')||null,
-    stopLoss:data.get('stopLoss')||null,takeProfit:data.get('takeProfit')||null,
+    riskReward:data.get('riskReward')||null,
     pnl:pnl,
-    duration:data.get('duration')||null,
     strategy:data.get('strategy'),setupType:data.get('setupType'),
     review:{
       setupDescription:data.get('setupDescription'),reasonForEntry:data.get('reasonForEntry'),
@@ -663,8 +641,8 @@ function openDayDetail(dateStr){
   const panel=document.getElementById('calDayDetail');panel.style.display='block';
   panel.innerHTML=
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><div><h4 class="font-heading" style="font-size:18px;font-weight:700">'+dateStr+'</h4><span style="font-size:14px;'+pnlClass(dayPnl)+';font-weight:700;font-family:\'Space Grotesk\'">'+pnlSign(dayPnl)+fmtCurrency(dayPnl)+'</span><span style="color:var(--text2);font-size:13px;margin-left:8px">'+trades.length+' trade'+(trades.length!==1?'s':'')+'</span></div><button class="btn btn-sm btn-secondary" onclick="document.getElementById(\'calDayDetail\').style.display=\'none\'"><i class="fas fa-times"></i></button></div>'
-    +(trades.length?'<div class="table-container" style="margin-bottom:16px"><table><thead><tr><th>Symbol</th><th>Dir</th><th>Entry</th><th>Exit</th><th>P/L</th><th>Strategy</th></tr></thead><tbody>'
-    +trades.map(t=>{const pnl=parseFloat(t.pnl)||0;return'<tr style="cursor:pointer" onclick="viewTrade(\''+t.id+'\')"><td style="font-weight:700">'+t.symbol+'</td><td><span class="badge '+(t.direction==='long'?'badge-green':'badge-red')+'">'+t.direction+'</span></td><td>'+(t.entryPrice||'-')+'</td><td>'+(t.exitPrice||'-')+'</td><td style="'+pnlClass(pnl)+';font-weight:700">'+pnlSign(pnl)+fmtCurrency(pnl)+'</td><td>'+(t.strategy||'-')+'</td></tr>'}).join('')
+    +(trades.length?'<div class="table-container" style="margin-bottom:16px"><table><thead><tr><th>Symbol</th><th>Dir</th><th>P/L</th><th>R:R</th><th>Strategy</th></tr></thead><tbody>'
+    +trades.map(t=>{const pnl=parseFloat(t.pnl)||0;const rr=t.riskReward?'1:'+t.riskReward:'-';return'<tr style="cursor:pointer" onclick="viewTrade(\''+t.id+'\')"><td style="font-weight:700">'+t.symbol+'</td><td><span class="badge '+(t.direction==='long'?'badge-green':'badge-red')+'">'+t.direction+'</span></td><td style="'+pnlClass(pnl)+';font-weight:700">'+pnlSign(pnl)+fmtCurrency(pnl)+'</td><td style="color:var(--text2)">'+rr+'</td><td>'+(t.strategy||'-')+'</td></tr>'}).join('')
     +'</tbody></table></div>':'<p style="color:var(--text2);font-size:13px;margin-bottom:16px">No trades on this day.</p>')
     +'<div style="display:grid;gap:10px"><div><label>Market Conditions</label><input type="text" id="jMarket" value="'+(journal.marketConditions||'')+'"></div><div><label>Biggest Mistake</label><input type="text" id="jMistake" value="'+(journal.biggestMistake||'')+'"></div><div><label>Biggest Success</label><input type="text" id="jSuccess" value="'+(journal.biggestSuccess||'')+'"></div><div><label>Lessons Learned</label><textarea id="jLessons" rows="2">'+(journal.lessonsLearned||'')+'</textarea></div><div><label>Daily Summary</label><textarea id="jSummary" rows="3">'+(journal.dailySummary||'')+'</textarea></div><button class="btn btn-primary btn-sm" onclick="saveDayJournal(\''+dateStr+'\')"><i class="fas fa-save"></i>Save Journal</button></div>';
 }
@@ -690,11 +668,11 @@ ${statCard('Max Drawdown',fmtCurrency(m.maxDD),'fa-arrow-trend-down','var(--loss
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
 <div class="card"><h3 class="font-heading" style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text2)">P/L by Day of Week</h3><div class="chart-container"><canvas id="chartDayOfWeek"></canvas></div></div>
-<div class="card"><h3 class="font-heading" style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text2)">P/L by Hour</h3><div class="chart-container"><canvas id="chartHourly"></canvas></div></div>
+<div class="card"><h3 class="font-heading" style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text2)">Win Rate by Strategy</h3><div class="chart-container"><canvas id="chartStratWR"></canvas></div></div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-<div class="card"><h3 class="font-heading" style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text2)">Win Rate by Strategy</h3><div class="chart-container"><canvas id="chartStratWR"></canvas></div></div>
 <div class="card"><h3 class="font-heading" style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text2)">Monthly P/L</h3><div class="chart-container"><canvas id="chartMonthlyPnl"></canvas></div></div>
+<div class="card"><h3 class="font-heading" style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text2)">Risk:Reward Distribution</h3><div class="chart-container"><canvas id="chartRR"></canvas></div></div>
 </div>
 <div class="card"><h3 class="font-heading" style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text2)">Symbol Analytics</h3><div id="symbolTable" class="table-container"></div></div>`;
   buildAnalyticsCharts(trades);buildSymbolTable(trades);
@@ -705,14 +683,16 @@ function buildAnalyticsCharts(trades){
   const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const dayPnl=Array(7).fill(0);trades.forEach(t=>{const d=new Date(t.date).getDay();dayPnl[d]+=(parseFloat(t.pnl)||0)});
   chartInstances.dayOfWeek=new Chart(document.getElementById('chartDayOfWeek'),{type:'bar',data:{labels:dayNames,datasets:[{data:dayPnl,backgroundColor:dayPnl.map(v=>v>=0?c.green+'88':c.red+'88'),borderColor:dayPnl.map(v=>v>=0?c.green:c.red),borderWidth:1,borderRadius:4}]},options:{...baseChartOpts(),plugins:{legend:{display:false}}}});
-  const hourPnl=Array(24).fill(0);trades.forEach(t=>{if(t.entryTime){const h=parseInt(t.entryTime.split(':')[0]);hourPnl[h]+=(parseFloat(t.pnl)||0)}});
-  chartInstances.hourly=new Chart(document.getElementById('chartHourly'),{type:'bar',data:{labels:Array(24).fill(0).map((_,i)=>i+':00'),datasets:[{data:hourPnl,backgroundColor:hourPnl.map(v=>v>=0?c.green+'88':c.red+'88'),borderColor:hourPnl.map(v=>v>=0?c.green:c.red),borderWidth:1,borderRadius:3}]},options:{...baseChartOpts(),plugins:{legend:{display:false}}}});
   const stratWR={};trades.forEach(t=>{const s=t.strategy||'Other';if(!stratWR[s])stratWR[s]={wins:0,total:0};stratWR[s].total++;if((parseFloat(t.pnl)||0)>0)stratWR[s].wins++});
   const strats=Object.keys(stratWR);
   chartInstances.stratWR=new Chart(document.getElementById('chartStratWR'),{type:'bar',data:{labels:strats,datasets:[{label:'Win Rate %',data:strats.map(s=>stratWR[s].total>0?(stratWR[s].wins/stratWR[s].total*100):0),backgroundColor:c.blue+'88',borderColor:c.blue,borderWidth:1,borderRadius:4}]},options:{...baseChartOpts(),plugins:{legend:{display:false}},scales:{...baseChartOpts().scales,y:{...baseChartOpts().scales.y,max:100}}}});
   const monthPnl={};trades.forEach(t=>{const mo=t.date?t.date.slice(0,7):'Unknown';if(!monthPnl[mo])monthPnl[mo]=0;monthPnl[mo]+=(parseFloat(t.pnl)||0)});
   const mKeys=Object.keys(monthPnl).sort();
   chartInstances.monthlyPnl=new Chart(document.getElementById('chartMonthlyPnl'),{type:'bar',data:{labels:mKeys,datasets:[{data:mKeys.map(k=>monthPnl[k]),backgroundColor:mKeys.map(k=>monthPnl[k]>=0?c.green+'88':c.red+'88'),borderColor:mKeys.map(k=>monthPnl[k]>=0?c.green:c.red),borderWidth:1,borderRadius:4}]},options:{...baseChartOpts(),plugins:{legend:{display:false}}}});
+  // R:R distribution chart
+  const rrBuckets={'<1':0,'1-1.5':0,'1.5-2':0,'2-3':0,'3+':0};
+  trades.forEach(t=>{const rr=parseFloat(t.riskReward)||0;if(!rr)return;if(rr<1)rrBuckets['<1']++;else if(rr<1.5)rrBuckets['1-1.5']++;else if(rr<2)rrBuckets['1.5-2']++;else if(rr<3)rrBuckets['2-3']++;else rrBuckets['3+']++;});
+  chartInstances.rr=new Chart(document.getElementById('chartRR'),{type:'doughnut',data:{labels:Object.keys(rrBuckets).map(k=>'1:'+k),datasets:[{data:Object.values(rrBuckets),backgroundColor:[c.red+'aa',c.amber+'aa',c.green+'88',c.blue+'88',c.purple+'88'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'bottom',labels:{color:c.text,font:{family:'DM Sans',size:11},padding:10}}}}});
 }
 
 function buildSymbolTable(trades){
@@ -726,7 +706,7 @@ function renderBestTrades(){
   const trades=[...getTrades()].sort((a,b)=>(parseFloat(b.pnl)||0)-(parseFloat(a.pnl)||0)).slice(0,10);
   document.getElementById('besttradesContent').innerHTML='<h3 class="font-heading" style="font-size:20px;font-weight:700;margin-bottom:20px">Top 10 Best Trades</h3>'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">'
-    +(trades.length?trades.map((t,i)=>{const pnl=parseFloat(t.pnl)||0;return'<div class="card" style="border-left:3px solid var(--accent);cursor:pointer" onclick="viewTrade(\''+t.id+'\')"><div style="display:flex;justify-content:space-between;align-items:start"><span style="font-size:24px;font-weight:900;color:var(--accent);font-family:\'Space Grotesk\'">#'+(i+1)+'</span><div style="text-align:right"><div style="font-size:20px;font-weight:700;color:var(--accent);font-family:\'Space Grotesk\'">'+pnlSign(pnl)+fmtCurrency(pnl)+'</div><div style="font-size:13px;color:var(--text2)">'+t.symbol+' · '+(t.direction||'-')+'</div></div></div><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><span class="badge badge-green">'+classifyTrade(pnl)+'</span><span style="font-size:12px;color:var(--text2)">'+t.date+'</span>'+(t.strategy?'<span class="badge badge-blue">'+t.strategy+'</span>':'')+'</div></div>'}).join('')
+    +(trades.length?trades.map((t,i)=>{const pnl=parseFloat(t.pnl)||0;const rr=t.riskReward?'1:'+t.riskReward:'';return'<div class="card" style="border-left:3px solid var(--accent);cursor:pointer" onclick="viewTrade(\''+t.id+'\')"><div style="display:flex;justify-content:space-between;align-items:start"><span style="font-size:24px;font-weight:900;color:var(--accent);font-family:\'Space Grotesk\'">#'+(i+1)+'</span><div style="text-align:right"><div style="font-size:20px;font-weight:700;color:var(--accent);font-family:\'Space Grotesk\'">'+pnlSign(pnl)+fmtCurrency(pnl)+'</div><div style="font-size:13px;color:var(--text2)">'+t.symbol+' · '+(t.direction||'-')+'</div></div></div><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><span class="badge badge-green">'+classifyTrade(pnl)+'</span><span style="font-size:12px;color:var(--text2)">'+t.date+'</span>'+(t.strategy?'<span class="badge badge-blue">'+t.strategy+'</span>':'')+(rr?'<span class="badge badge-yellow">R:R '+rr+'</span>':'')+'</div></div>'}).join('')
     :'<div style="text-align:center;color:var(--text2);padding:40px;grid-column:1/-1">No trades yet</div>')+'</div>';
 }
 
@@ -734,7 +714,7 @@ function renderWorstTrades(){
   const trades=[...getTrades()].sort((a,b)=>(parseFloat(a.pnl)||0)-(parseFloat(b.pnl)||0)).slice(0,10);
   document.getElementById('worsttradesContent').innerHTML='<h3 class="font-heading" style="font-size:20px;font-weight:700;margin-bottom:20px">Top 10 Worst Trades</h3>'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">'
-    +(trades.length?trades.map((t,i)=>{const pnl=parseFloat(t.pnl)||0;return'<div class="card" style="border-left:3px solid var(--loss);cursor:pointer" onclick="viewTrade(\''+t.id+'\')"><div style="display:flex;justify-content:space-between;align-items:start"><span style="font-size:24px;font-weight:900;color:var(--loss);font-family:\'Space Grotesk\'">#'+(i+1)+'</span><div style="text-align:right"><div style="font-size:20px;font-weight:700;color:var(--loss);font-family:\'Space Grotesk\'">'+fmtCurrency(pnl)+'</div><div style="font-size:13px;color:var(--text2)">'+t.symbol+' · '+(t.direction||'-')+'</div></div></div><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><span class="badge badge-red">'+classifyTrade(pnl)+'</span><span style="font-size:12px;color:var(--text2)">'+t.date+'</span>'+(t.strategy?'<span class="badge badge-yellow">'+t.strategy+'</span>':'')+'</div></div>'}).join('')
+    +(trades.length?trades.map((t,i)=>{const pnl=parseFloat(t.pnl)||0;const rr=t.riskReward?'1:'+t.riskReward:'';return'<div class="card" style="border-left:3px solid var(--loss);cursor:pointer" onclick="viewTrade(\''+t.id+'\')"><div style="display:flex;justify-content:space-between;align-items:start"><span style="font-size:24px;font-weight:900;color:var(--loss);font-family:\'Space Grotesk\'">#'+(i+1)+'</span><div style="text-align:right"><div style="font-size:20px;font-weight:700;color:var(--loss);font-family:\'Space Grotesk\'">'+fmtCurrency(pnl)+'</div><div style="font-size:13px;color:var(--text2)">'+t.symbol+' · '+(t.direction||'-')+'</div></div></div><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><span class="badge badge-red">'+classifyTrade(pnl)+'</span><span style="font-size:12px;color:var(--text2)">'+t.date+'</span>'+(t.strategy?'<span class="badge badge-yellow">'+t.strategy+'</span>':'')+(rr?'<span class="badge badge-blue">R:R '+rr+'</span>':'')+'</div></div>'}).join('')
     :'<div style="text-align:center;color:var(--text2);padding:40px;grid-column:1/-1">No trades yet</div>')+'</div>';
 }
 
@@ -796,8 +776,8 @@ ${miniStat('Total P/L',pnlSign(m.netPnl)+fmtCurrency(m.netPnl))}${miniStat('Tota
 
 function exportTradesCSV(){
   const trades=getTrades();if(!trades.length){showToast('No trades to export','error');return}
-  const headers=['Date','Symbol','Direction','Strategy','Setup','Entry Price','Exit Price','SL','TP','Lot Size','P/L','Duration'];
-  const rows=trades.map(t=>[t.date,t.symbol,t.direction,t.strategy,t.setupType,t.entryPrice,t.exitPrice,t.stopLoss,t.takeProfit,t.lotSize,t.pnl,t.duration]);
+  const headers=['Date','Symbol','Direction','Strategy','Setup','Risk:Reward','Lot Size','P/L'];
+  const rows=trades.map(t=>[t.date,t.symbol,t.direction,t.strategy,t.setupType,t.riskReward?'1:'+t.riskReward:'',t.lotSize,t.pnl]);
   downloadFile([headers,...rows].map(r=>r.map(c=>'"'+(c||'')+'"').join(',')).join('\n'),'tradevault_export.csv','text/csv');showToast('CSV exported');
 }
 function exportJSON(){downloadFile(JSON.stringify(getDB(),null,2),'tradevault_backup.json','application/json');showToast('JSON backup exported')}
