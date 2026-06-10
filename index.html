@@ -569,8 +569,8 @@ ${statCard('Win Rate',fmtPct(m.winRate),'fa-bullseye',m.winRate>=50?'var(--accen
 ${statCard('Profit Factor',fmt(m.profitFactor),'fa-balance-scale','var(--info)')}
 ${statCard('Expectancy',fc(m.expectancy),'fa-dice',m.expectancy>=0?'var(--accent)':'var(--loss)')}
 ${statCard('Max Drawdown',fc(m.maxDD),'fa-arrow-trend-down','var(--loss)')}
-${statCard('Avg Winner',fc(m.avgWin),'fa-arrow-up','var(--accent)')}
-${statCard('Avg Loser',fc(m.avgLoss),'fa-arrow-down','var(--loss)')}
+${statCard('Avg Profit',fc(m.avgWin),'fa-arrow-up','var(--accent)')}
+${statCard('Avg Loss',fc(m.avgLoss),'fa-arrow-down','var(--loss)')}
 ${statCard('Total Trades',m.totalTrades,'fa-repeat','var(--info)')}
 ${statCard('W / L / BE',m.wins+' / '+m.losses+' / '+m.be,'fa-trophy','var(--warn)')}
 </div>
@@ -618,7 +618,7 @@ function buildDashboardCharts(trades, m, dailyPnl, dates) {
     let r=0; const eqData=dates.map(d=>{r+=dailyPnl[d];return r});
     chartInstances.equity=new Chart(document.getElementById('chartEquity'),{type:'line',data:{labels:dates.map(d=>d.slice(5)),datasets:[{label:'Cumulative P/L',data:eqData,borderColor:c.green,backgroundColor:c.green+'22',fill:true,tension:.3,pointRadius:2,pointHoverRadius:5,borderWidth:2}]},options:{...baseChartOpts(),plugins:{legend:{display:false}}}});
   }
-  chartInstances.winLoss=new Chart(document.getElementById('chartWinLoss'),{type:'doughnut',data:{labels:['Winners','Losers','Breakeven'],datasets:[{data:[m.wins,m.losses,m.be],backgroundColor:[c.green,c.red,c.amber],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'bottom',labels:{color:c.text,font:{family:'DM Sans',size:11},padding:12}}}}});
+  chartInstances.winLoss=new Chart(document.getElementById('chartWinLoss'),{type:'doughnut',data:{labels:['Win','Loss','Breakeven'],datasets:[{data:[m.wins,m.losses,m.be],backgroundColor:[c.green,c.red,c.amber],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'bottom',labels:{color:c.text,font:{family:'DM Sans',size:11},padding:12}}}}});
   if(dates.length){
     const dpData=dates.map(d=>dailyPnl[d]);const dpColors=dpData.map(v=>v>=0?c.green:c.red);
     chartInstances.dailyPnl=new Chart(document.getElementById('chartDailyPnl'),{type:'bar',data:{labels:dates.map(d=>d.slice(5)),datasets:[{label:'Daily P/L',data:dpData,backgroundColor:dpColors.map(cl=>cl+'88'),borderColor:dpColors,borderWidth:1,borderRadius:4}]},options:{...baseChartOpts(),plugins:{legend:{display:false}}}});
