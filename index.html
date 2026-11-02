@@ -410,7 +410,7 @@ function computeMetrics(trades) {
   };
 }
 
-function classifyTrade(pnl) { return pnl>0?'Winner':pnl<0?'Loser':'Breakeven'; }
+function classifyTrade(pnl) { return pnl>0?'Win':pnl<0?'Loss':'Breakeven'; }
 
 /* ================================================================
    STORAGE ESTIMATION
@@ -635,7 +635,7 @@ async function renderTradeLog() {
 <div style="flex:1;min-width:150px"><label>Search</label><input type="text" id="tlSearch" oninput="filterTradeLog()"></div>
 <div style="min-width:130px"><label>Strategy</label><select id="tlStrategy" onchange="filterTradeLog()"><option value="">All</option>${settings.strategies.map(s=>'<option>'+s+'</option>').join('')}</select></div>
 <div style="min-width:130px"><label>Symbol</label><select id="tlSymbol" onchange="filterTradeLog()"><option value="">All</option>${symbols.map(s=>'<option>'+s+'</option>').join('')}</select></div>
-<div style="min-width:130px"><label>Result</label><select id="tlResult" onchange="filterTradeLog()"><option value="">All</option><option>Winner</option><option>Loser</option><option>Breakeven</option></select></div>
+<div style="min-width:130px"><label>Result</label><select id="tlResult" onchange="filterTradeLog()"><option value="">All</option><option>Win</option><option>Loss</option><option>Breakeven</option></select></div>
 <div style="min-width:130px"><label>Date From</label><input type="date" id="tlDateFrom" onchange="filterTradeLog()"></div>
 <div style="min-width:130px"><label>Date To</label><input type="date" id="tlDateTo" onchange="filterTradeLog()"></div>
 <button class="btn btn-secondary btn-sm" onclick="exportTradesCSV()"><i class="fas fa-download"></i>CSV</button>
@@ -889,8 +889,8 @@ async function renderAnalytics() {
   document.getElementById('analyticsContent').innerHTML=`
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:12px;margin-bottom:20px">
 ${statCard('Net P/L',pnlSign(m.netPnl)+fc(m.netPnl),'fa-chart-line',m.netPnl>=0?'var(--accent)':'var(--loss)')}
-${statCard('Largest Winner',fc(m.largestWin),'fa-arrow-up','var(--accent)')}
-${statCard('Largest Loser',fc(m.largestLoss),'fa-arrow-down','var(--loss)')}
+${statCard('Largest Win',fc(m.largestWin),'fa-arrow-up','var(--accent)')}
+${statCard('Largest Loss',fc(m.largestLoss),'fa-arrow-down','var(--loss)')}
 ${statCard('Profit Factor',fmt(m.profitFactor),'fa-balance-scale','var(--info)')}
 ${statCard('Expectancy',fc(m.expectancy),'fa-dice',m.expectancy>=0?'var(--accent)':'var(--loss)')}
 ${statCard('Max Drawdown',fc(m.maxDD),'fa-arrow-trend-down','var(--loss)')}
